@@ -1,0 +1,111 @@
+
+import { Dua } from './types';
+
+export const RAMADAN_SCHEDULE = [
+  // First 10 Days: Rahmat
+  { ramadan: '০১', date: '১৯ ফেব্রুয়ারি', day: 'বৃহস্পতি', sehri: '৫:১২', iftar: '৫:৫৮', ashra: 'Rahmat' },
+  { ramadan: '০২', date: '২০ ফেব্রুয়ারি', day: 'শুক্র', sehri: '৫:১১', iftar: '৫:৫৮', ashra: 'Rahmat' },
+  { ramadan: '০৩', date: '২১ ফেব্রুয়ারি', day: 'শনি', sehri: '৫:১১', iftar: '৫:৫৯', ashra: 'Rahmat' },
+  { ramadan: '০৪', date: '২২ ফেব্রুয়ারি', day: 'রবি', sehri: '৫:১০', iftar: '৫:৫৯', ashra: 'Rahmat' },
+  { ramadan: '০৫', date: '২৩ ফেব্রুয়ারি', day: 'সোম', sehri: '৫:০৯', iftar: '৬:০০', ashra: 'Rahmat' },
+  { ramadan: '০৬', date: '২৪ ফেব্রুয়ারি', day: 'মঙ্গল', sehri: '৫:০৮', iftar: '৬:০০', ashra: 'Rahmat' },
+  { ramadan: '০৭', date: '২৫ ফেব্রুয়ারি', day: 'বুধ', sehri: '৫:০৮', iftar: '৬:০১', ashra: 'Rahmat' },
+  { ramadan: '০৮', date: '২৬ ফেব্রুয়ারি', day: 'বৃহস্পতি', sehri: '৫:০৭', iftar: '৬:০১', ashra: 'Rahmat' },
+  { ramadan: '০৯', date: '২৭ ফেব্রুয়ারি', day: 'শুক্র', sehri: '৫:০৬', iftar: '৬:০২', ashra: 'Rahmat' },
+  { ramadan: '১০', date: '২৮ ফেব্রুয়ারি', day: 'শনি', sehri: '৫:০৫', iftar: '৬:০২', ashra: 'Rahmat' },
+
+  // Second 10 Days: Maghfirat
+  { ramadan: '১১', date: '০১ মার্চ', day: 'রবি', sehri: '৫:০৫', iftar: '৬:০৩', ashra: 'Maghfirat' },
+  { ramadan: '১২', date: '০২ মার্চ', day: 'সোম', sehri: '৫:০৪', iftar: '৬:০৩', ashra: 'Maghfirat' },
+  { ramadan: '১৩', date: '০৩ মার্চ', day: 'মঙ্গল', sehri: '৫:০৩', iftar: '৬:০৪', ashra: 'Maghfirat' },
+  { ramadan: '১৪', date: '০৪ মার্চ', day: 'বুধ', sehri: '৫:০২', iftar: '৬:০৪', ashra: 'Maghfirat' },
+  { ramadan: '১৫', date: '০৫ মার্চ', day: 'বৃহস্পতি', sehri: '৫:০১', iftar: '৬:০৫', ashra: 'Maghfirat' },
+  { ramadan: '১৬', date: '০৬ মার্চ', day: 'শুক্র', sehri: '৫:০০', iftar: '৬:০৫', ashra: 'Maghfirat' },
+  { ramadan: '১৭', date: '০৭ মার্চ', day: 'শনি', sehri: '৪:৫৯', iftar: '৬:০৬', ashra: 'Maghfirat' },
+  { ramadan: '১৮', date: '০৮ মার্চ', day: 'রবি', sehri: '৪:৫৮', iftar: '৬:০৬', ashra: 'Maghfirat' },
+  { ramadan: '১৯', date: '০৯ মার্চ', day: 'সোম', sehri: '৪:৫৭', iftar: '৬:০৭', ashra: 'Maghfirat' },
+  { ramadan: '২০', date: '১০ মার্চ', day: 'মঙ্গল', sehri: '৪:৫৭', iftar: '৬:০৭', ashra: 'Maghfirat' },
+
+  // Third 10 Days: Najat
+  { ramadan: '২১', date: '১১ মার্চ', day: 'বুধ', sehri: '৪:৫৬', iftar: '৬:০৭', ashra: 'Najat' },
+  { ramadan: '২২', date: '১২ মার্চ', day: 'বৃহস্পতি', sehri: '৪:৫৫', iftar: '৬:০৮', ashra: 'Najat' },
+  { ramadan: '২৩', date: '১৩ মার্চ', day: 'শুক্র', sehri: '৪:৫৪', iftar: '৬:০৮', ashra: 'Najat' },
+  { ramadan: '২৪', date: '১৪ মার্চ', day: 'শনি', sehri: '৪:৫৩', iftar: '৬:০৯', ashra: 'Najat' },
+  { ramadan: '২৫', date: '১৫ মার্চ', day: 'রবি', sehri: '৪:৫২', iftar: '৬:০৯', ashra: 'Najat' },
+  { ramadan: '২৬', date: '১৬ মার্চ', day: 'সোম', sehri: '৪:৫১', iftar: '৬:১০', ashra: 'Najat' },
+  { ramadan: '২৭', date: '১৭ মার্চ', day: 'মঙ্গল', sehri: '৪:৫০', iftar: '৬:১০', ashra: 'Najat' },
+  { ramadan: '২৮', date: '১৮ মার্চ', day: 'বুধ', sehri: '৪:৪৯', iftar: '৬:১০', ashra: 'Najat' },
+  { ramadan: '২৯', date: '১৯ মার্চ', day: 'বৃহস্পতি', sehri: '৪:৪৮', iftar: '৬:১১', ashra: 'Najat' },
+  { ramadan: '৩০', date: '২০ মার্চ', day: 'শুক্র', sehri: '৪:৪৭', iftar: '৬:১১', ashra: 'Najat' },
+];
+
+export const DUAS: Dua[] = [
+  {
+    id: 1,
+    title: "সেহরির নিয়ত",
+    category: "Sehri",
+    arabic: "وَبِصَوْمِ غَدٍ نَّوَيْتُ مِنْ شَهْرِ رَمَضَانَ",
+    transliteration: "Wa bisawmi ghadinn nawaiytu min shahri ramadan",
+    translation: "হে আল্লাহ! আমি আগামীকাল পবিত্র রমজানের রোজা রাখার নিয়ত করলাম।"
+  },
+  {
+    id: 2,
+    title: "ইফতারের দোয়া",
+    category: "Iftar",
+    arabic: "اللَّهُمَّ اِنِّى لَكَ صُمْتُ وَبِكَ امنْتُ وَعَلَى رِزْقِكَ اَفْطَرْتُ",
+    transliteration: "Allahumma inni laka sumtu wa bika aamantu wa 'ala rizq-ika aftartu",
+    translation: "হে আল্লাহ! আমি তোমার জন্যই রোজা রেখেছি, তোমার প্রতি ঈমান এনেছি এবং তোমার দেওয়া রিজিক দিয়ে ইফতার করছি।"
+  },
+  {
+    id: 3,
+    title: "ইফতারের পরের দোয়া",
+    category: "Iftar",
+    arabic: "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ إِنْ شَاءَ اللَّهُ",
+    transliteration: "Dhahaba az-zama'u wab-tallatil 'uruqu wa thabatal ajru inshaAllah",
+    translation: "পিপাসা দূর হলো, শিরা-উপশিরা সিক্ত হলো এবং আল্লাহর ইচ্ছায় পুরস্কার নির্ধারিত হলো।"
+  },
+  {
+    id: 4,
+    title: "১ম আশরা (রহমত)",
+    category: "General",
+    arabic: "رَبِّ اغْفِرْ وَارْحَمْ وَأَنْتَ خَيْرُ الرَّاحِمِينَ",
+    transliteration: "Rabbighfir warham wa anta khairur raahimeen",
+    translation: "হে আমার প্রভু! আমাকে ক্ষমা করুন এবং দয়া করুন, আপনিই তো সর্বশ্রেষ্ঠ দয়ালু।"
+  },
+  {
+    id: 5,
+    title: "২য় আশরা (মাগফিরাত)",
+    category: "General",
+    arabic: "أَسْتَغْفِرُ اللهَ رَبِّي مِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
+    transliteration: "Astaghfirullaha rabbi min kulli dhanbin wa atubu ilayh",
+    translation: "আমি আল্লাহর কাছে ক্ষমা চাই সকল পাপ থেকে এবং তাঁর দিকেই ফিরে যাই।"
+  },
+  {
+    id: 6,
+    title: "৩য় আশরা (নাজাত)",
+    category: "General",
+    arabic: "اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ",
+    transliteration: "Allahumma ajirni minan naar",
+    translation: "হে আল্লাহ! আমাকে জাহান্নামের আগুন থেকে রক্ষা করুন।"
+  }
+];
+
+export const MOCK_COORDS = {
+  latitude: 23.8103, // Dhaka
+  longitude: 90.4125
+};
+
+export const BENGALI_SURAH_NAMES = [
+  "আল-ফাতিহা", "আল-বাকারা", "আল-ইমরান", "আন-নিসা", "আল-মায়িদাহ", "আল-আনআম", "আল-আরাফ", "আল-আনফাল", "আত-তাওবাহ", "ইউনুস",
+  "হুদ", "ইউসুফ", "আর-রাদ", "ইব্রাহিম", "আল-হিজর", "আন-নাহল", "বনী-ইসরাঈল", "আল-কাহফ", "মারইয়াম", "ত্বা-হা",
+  "আল-আম্বিয়া", "আল-হজ্জ", "আল-মুমিনুন", "আন-নূর", "আল-ফুরকান", "আশ-শুকরা", "আন-নামল", "আল-কাসাস", "আল-আনকাবুত", "আর-রুম",
+  "লুকমান", "আস-সাজদাহ", "আল-আহযাব", "সাবা", "ফাতির", "ইয়াসিন", "আস-সাফফাত", "সাদ", "আয-যুমার", "গাফির",
+  "ফুসসিলাত", "আশ-শূরা", "আয-যুখরুফ", "আদ-দুখান", "আল-জাসিয়া", "আল-আহকাফ", "মুহাম্মদ", "আল-ফাতহ", "আল-হুজুরাত", "ক্বাফ",
+  "আয-যারিয়াত", "আত-তূর", "আন-নাজম", "আল-কামার", "আর-রাহমান", "আল-ওয়াকিয়াহ", "আল-হাদিদ", "আল-মুজাদালাহ", "আল-হাশর", "আল-মুমতাহিনাহ",
+  "আস-সাফ", "আল-জুমুআহ", "আল-মুনাফিকুন", "আত-তাগাবুন", "আত-তালাক", "আত-তাহরিম", "আল-মুলক", "আল-কলম", "আল-হাক্কাহ", "আল-মাআরিজ",
+  "নূহ", "আল-জ্বিন", "আল-মুজাম্মিল", "আল-মুদ্দাসসির", "আল-কিয়ামাহ", "আল-ইনসান", "আল-মুরসালাত", "আন-নাবা", "আন-নাজিয়াত", "আবাসা",
+  "আত-তাকভির", "আল-ইনফিতার", "আল-মুতাফফিফিন", "আল-ইনশিকাক", "আল-বুরুজ", "আত-তারিক", "আল-আলা", "আল-গাশিয়াহ", "আল-ফজর", "আল-বালাদ",
+  "আশ-শামস", "আল-লাইল", "আদ-দুহা", "আল-ইনশিরাহ", "আত-তীন", "আল-আলাক", "আল-কদর", "আল-বাইয়িনাহ", "আল-যিলযাল", "আল-আদিয়াত",
+  "আল-কারিয়াহ", "আত-তাকাসুর", "আল-আসর", "আল-হুমাজাহ", "আল-ফিল", "কুরাইশ", "আল-মাউন", "আল-কাউসার", "আল-কাফিরুন", "আন-নাসর",
+  "আল-লাহাব", "আল-ইখলাস", "আল-ফালাক", "আন-নাস"
+];

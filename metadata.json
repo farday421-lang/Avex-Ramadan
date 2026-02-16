@@ -1,0 +1,7 @@
+{
+  "name": "Avex Ramadan",
+  "description": "A premium, iOS-inspired Islamic companion app for Ramadan 2026 featuring a Dynamic Island interface, real-time prayer tracking, and glassmorphism UI.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
