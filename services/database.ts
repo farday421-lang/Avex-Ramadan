@@ -24,6 +24,30 @@ const DEFAULT_CHECKLIST: ChecklistItem[] = [
 export const db = {
   // --- Users ---
   users: {
+      getByName: async (name: string): Promise<UserProfile | null> => {
+          const { data, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .ilike('name', name) // Case insensitive search
+              .maybeSingle();
+
+          if (error) {
+              console.error("Error fetching user:", error);
+              return null;
+          }
+          if (!data) return null;
+
+          // Map DB snake_case to App camelCase
+          return {
+              id: data.id,
+              name: data.name,
+              role: data.role,
+              streak: data.streak,
+              totalFasts: data.total_fasts,
+              badges: data.badges || [],
+              hasOnboarded: true
+          } as UserProfile;
+      },
       sync: async (profile: UserProfile) => {
           const { error } = await supabase
               .from('profiles')

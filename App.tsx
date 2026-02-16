@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, ChevronRight, Zap, Moon, Locate, Star, Sun } from 'lucide-react';
+import { Calendar, Clock, ChevronRight, Zap, Moon, Locate, Star, Sun, Download, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,14 +17,13 @@ import AIAssistant from './components/AIAssistant';
 import SpiritualHub from './components/SpiritualHub';
 import WelcomePopup from './components/WelcomePopup';
 import TutorialOverlay from './components/TutorialOverlay';
-import AdminDashboard from './components/AdminDashboard'; // Added Import if not present, but usually implied
 
 // Utils & Services
 import { DUAS, MOCK_COORDS, RAMADAN_SCHEDULE } from './constants';
 import { PrayerData, Coordinates, UserProfile } from './types';
 import { fetchPrayerTimes, getNextPrayer } from './services/prayerService';
 import { toBengaliNumber, translatePrayer, getBengaliMonth, getBengaliDay, getBengaliTimePeriod } from './services/utils';
-import { db } from './services/database'; // Import db to sync user
+import { db } from './services/database'; 
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -38,9 +37,44 @@ const App: React.FC = () => {
   const [todayRamadan, setTodayRamadan] = useState(RAMADAN_SCHEDULE[0]);
   const [isPreRamadan, setIsPreRamadan] = useState(false);
   
+  // PWA Install Prompt State
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+
   // New State for Popups
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+
+  // Capture Install Prompt & Detect iOS
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+      console.log("Install prompt captured");
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+
+    // iOS Detection
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(ios);
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (installPrompt) {
+        installPrompt.prompt();
+        const { outcome } = await installPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setInstallPrompt(null);
+        }
+    } else {
+        // Fallback or iOS instructions
+        setShowInstallHelp(true);
+        setTimeout(() => setShowInstallHelp(false), 5000);
+    }
+  };
 
   // Load User & Location
   useEffect(() => {
@@ -110,9 +144,7 @@ const App: React.FC = () => {
       
       if (prayerData) {
         const next = getNextPrayer(prayerData.timings);
-        // Translate Next Prayer Data
         const translatedName = translatePrayer(next.name);
-        // Translate time left "1h 30m" -> "১ঘ ৩০মি"
         const translatedTimeLeft = next.timeLeft
             .replace('h', 'ঘ')
             .replace('m', 'মি')
@@ -126,7 +158,6 @@ const App: React.FC = () => {
             timeLeft: translatedTimeLeft
         });
         
-        // Ramadan Night Mode Logic
         const maghrib = prayerData.timings.Maghrib.split(':').map(Number);
         const fajr = prayerData.timings.Fajr.split(':').map(Number);
         const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -144,23 +175,34 @@ const App: React.FC = () => {
   }, [prayerData]);
 
   const handleOnboardingComplete = async (name: string) => {
-    const newUser: UserProfile = {
-        id: Date.now().toString(),
-        name,
-        hasOnboarded: true,
-        streak: 0,
-        totalFasts: 0,
-        role: 'user', 
-        badges: []
-    };
+    setLoading(true);
     
-    // 1. Set local state
-    setUser(newUser);
-    // 2. Save to LocalStorage for persistence ID
-    localStorage.setItem('avex_user', JSON.stringify(newUser));
-    // 3. Sync to Supabase
-    await db.users.sync(newUser);
+    // Check user existence (Onboarding already validated this, but double check/fetch full profile)
+    const existingUser = await db.users.getByName(name.trim());
+    
+    let finalUser: UserProfile;
 
+    if (existingUser) {
+        finalUser = existingUser;
+    } else {
+        finalUser = {
+            id: Date.now().toString(),
+            name: name.trim(),
+            hasOnboarded: true,
+            streak: 0,
+            totalFasts: 0,
+            role: 'user', 
+            badges: []
+        };
+        await db.users.sync(finalUser);
+    }
+    
+    localStorage.setItem('avex_user', JSON.stringify(finalUser));
+    setUser(finalUser);
+    setLoading(false);
+    
+    // Only show welcome popup if it's a new signup (or logic can be adjusted)
+    // Here we show it for both as a "Welcome back" or "Welcome"
     setShowWelcome(true);
   };
 
@@ -173,7 +215,6 @@ const App: React.FC = () => {
       setShowTutorial(false);
   };
 
-  // Helper for Date Display
   const getBengaliDateString = (date: Date) => {
       const d = toBengaliNumber(date.getDate());
       const m = getBengaliMonth(date.getMonth());
@@ -184,17 +225,11 @@ const App: React.FC = () => {
   if (loading) return <LoadingScreen />;
   if (!user) return <Onboarding onComplete={handleOnboardingComplete} />;
 
-  // --- Views ---
-
   const renderHome = () => (
     <div className="flex flex-col gap-10">
-        {/* HERO SECTION: Orbital HUD Clock */}
         <header className="relative flex flex-col items-center justify-center py-10">
-            
-            {/* Ambient Back Glow */}
             <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full pointer-events-none blur-[80px] transition-colors duration-1000 ${isRamadanNight ? 'bg-purple-500/10' : 'bg-avex-lime/5'}`} />
 
-            {/* Main HUD Container */}
             <div className="relative w-[300px] h-[300px] flex items-center justify-center">
                 <motion.div 
                     animate={{ rotate: 360 }}
@@ -211,7 +246,6 @@ const App: React.FC = () => {
                 </motion.div>
                 <div className="absolute inset-8 rounded-full border border-white/5 bg-white/[0.02] backdrop-blur-sm" />
 
-                {/* Time Display */}
                 <div className="relative z-10 flex flex-col items-center justify-center">
                      <motion.h1 
                         className="text-[5.5rem] leading-[0.8] font-black text-white tracking-tighter drop-shadow-2xl"
@@ -232,13 +266,11 @@ const App: React.FC = () => {
                      </motion.h1>
                 </div>
 
-                {/* Location Badge */}
                 <div className="absolute -top-6 bg-black/40 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2">
                     <Locate size={10} className="text-avex-lime animate-pulse" />
                     <span className="text-[10px] uppercase tracking-widest text-white/60">ঢাকা</span>
                 </div>
 
-                 {/* Multi-Date Badge */}
                  <div className="absolute -bottom-8 flex flex-col items-center gap-1">
                     <div className="bg-black/40 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-2">
                         <Calendar size={10} className="text-white/40" />
@@ -250,7 +282,6 @@ const App: React.FC = () => {
             </div>
         </header>
 
-        {/* DASHBOARD GRID - SEHRI & IFTAR */}
         {isPreRamadan ? (
             <div className="glass-card rounded-[2rem] p-6 relative overflow-hidden group hover:border-avex-lime/30 transition-all duration-500 w-full text-center">
                  <div className="absolute top-0 right-0 p-4 opacity-10"><Moon size={60} /></div>
@@ -284,7 +315,6 @@ const App: React.FC = () => {
                     </div>
                  </div>
                  
-                 {/* Decorative Gradient Line */}
                  <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-avex-lime to-transparent opacity-50" />
             </div>
         ) : (
@@ -325,7 +355,6 @@ const App: React.FC = () => {
             </div>
         )}
 
-        {/* Next Prayer Countdown Widget */}
         <div className="glass-card rounded-[2rem] p-4 flex items-center justify-between border-l-4 border-l-avex-lime">
             <div className="flex items-center gap-4">
                 <div className="p-3 bg-white/5 rounded-full">
@@ -372,6 +401,35 @@ const App: React.FC = () => {
   return (
     <div className={`min-h-screen w-full bg-avex-black text-white relative overflow-x-hidden selection:bg-avex-lime/30 font-sans ${isRamadanNight ? 'theme-night' : ''}`}>
       
+      {/* Install App Button - Top Left */}
+      {(installPrompt || isIOS) && (
+        <div className="fixed top-6 left-6 z-[60]">
+            <button 
+              onClick={handleInstallClick}
+              className="p-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-white/70 hover:bg-avex-lime hover:text-black transition-all shadow-lg animate-pulse"
+              title="Install App"
+            >
+              <Download size={20} />
+            </button>
+            <AnimatePresence>
+                {showInstallHelp && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute top-14 left-0 w-64 bg-black/90 border border-white/20 p-4 rounded-xl text-xs text-white/80 backdrop-blur-xl"
+                    >
+                        {isIOS ? (
+                           <p>ইনস্টল করতে: ব্রাউজার মেনুতে <span className="inline-block p-1 bg-white/20 rounded"><Smartphone size={10} className="inline" /> Share</span> এ ক্লিক করুন এবং <b>"Add to Home Screen"</b> সিলেক্ট করুন।</p>
+                        ) : (
+                           <p>অ্যাপটি ইনস্টল করতে ব্রাউজারের মেনু থেকে <b>"Install App"</b> বা <b>"Add to Home Screen"</b> অপশনটি খুঁজুন।</p>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+      )}
+
       {/* Dynamic Background Stars */}
       <div className="fixed inset-0 pointer-events-none z-0">
          {isRamadanNight && <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 to-transparent opacity-50" />}
