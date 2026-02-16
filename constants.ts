@@ -45,7 +45,7 @@ export const DUAS: Dua[] = [
     title: "সেহরির নিয়ত",
     category: "Sehri",
     arabic: "وَبِصَوْمِ غَدٍ نَّوَيْتُ مِنْ شَهْرِ رَمَضَانَ",
-    transliteration: "Wa bisawmi ghadinn nawaiytu min shahri ramadan",
+    transliteration: "নাওয়াইতু আন আছুম্মা গাদাম মিন শাহরি রমাজান",
     translation: "হে আল্লাহ! আমি আগামীকাল পবিত্র রমজানের রোজা রাখার নিয়ত করলাম।"
   },
   {
@@ -53,7 +53,7 @@ export const DUAS: Dua[] = [
     title: "ইফতারের দোয়া",
     category: "Iftar",
     arabic: "اللَّهُمَّ اِنِّى لَكَ صُمْتُ وَبِكَ امنْتُ وَعَلَى رِزْقِكَ اَفْطَرْتُ",
-    transliteration: "Allahumma inni laka sumtu wa bika aamantu wa 'ala rizq-ika aftartu",
+    transliteration: "আল্লাহুম্মা ইন্নি লাকা ছুমতু ওয়া বিকা আমানতু ওয়া 'আলা রিযক্বিকা আফত্বারতু",
     translation: "হে আল্লাহ! আমি তোমার জন্যই রোজা রেখেছি, তোমার প্রতি ঈমান এনেছি এবং তোমার দেওয়া রিজিক দিয়ে ইফতার করছি।"
   },
   {
@@ -61,7 +61,7 @@ export const DUAS: Dua[] = [
     title: "ইফতারের পরের দোয়া",
     category: "Iftar",
     arabic: "ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ إِنْ شَاءَ اللَّهُ",
-    transliteration: "Dhahaba az-zama'u wab-tallatil 'uruqu wa thabatal ajru inshaAllah",
+    transliteration: "যাহাবায যামা-উ ওয়াবতাল্লাতিল 'উরূকু ওয়া ছাবাতাল আজরু ইনশাআল্লাহ",
     translation: "পিপাসা দূর হলো, শিরা-উপশিরা সিক্ত হলো এবং আল্লাহর ইচ্ছায় পুরস্কার নির্ধারিত হলো।"
   },
   {
@@ -69,7 +69,7 @@ export const DUAS: Dua[] = [
     title: "১ম আশরা (রহমত)",
     category: "General",
     arabic: "رَبِّ اغْفِرْ وَارْحَمْ وَأَنْتَ خَيْرُ الرَّاحِمِينَ",
-    transliteration: "Rabbighfir warham wa anta khairur raahimeen",
+    transliteration: "রাব্বিগফির ওয়ারহাম ওয়া আনতা খাইরুর রাহিমীন",
     translation: "হে আমার প্রভু! আমাকে ক্ষমা করুন এবং দয়া করুন, আপনিই তো সর্বশ্রেষ্ঠ দয়ালু।"
   },
   {
@@ -77,7 +77,7 @@ export const DUAS: Dua[] = [
     title: "২য় আশরা (মাগফিরাত)",
     category: "General",
     arabic: "أَسْتَغْفِرُ اللهَ رَبِّي مِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
-    transliteration: "Astaghfirullaha rabbi min kulli dhanbin wa atubu ilayh",
+    transliteration: "আস্তাগফিরুল্লাহা রাব্বি মিন কুল্লি যামবিউ ওয়া আতুবু ইলাইহি",
     translation: "আমি আল্লাহর কাছে ক্ষমা চাই সকল পাপ থেকে এবং তাঁর দিকেই ফিরে যাই।"
   },
   {
@@ -85,7 +85,7 @@ export const DUAS: Dua[] = [
     title: "৩য় আশরা (নাজাত)",
     category: "General",
     arabic: "اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ",
-    transliteration: "Allahumma ajirni minan naar",
+    transliteration: "আল্লাহুম্মা আজিরনি মিনান নার",
     translation: "হে আল্লাহ! আমাকে জাহান্নামের আগুন থেকে রক্ষা করুন।"
   }
 ];

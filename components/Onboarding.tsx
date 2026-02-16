@@ -5,7 +5,7 @@ import { ArrowRight, Star, UserPlus, LogIn, AlertCircle, Loader2 } from 'lucide-
 import { db } from '../services/database';
 
 interface OnboardingProps {
-  onComplete: (name: string) => void;
+  onComplete: (name: string, isNewUser: boolean) => void;
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
@@ -31,6 +31,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 setLoading(false);
                 return;
             }
+            // Success Signup
+            setStep(2);
+            setTimeout(() => onComplete(name, true), 1500); // true = New User
         } else {
             // Login mode
             if (!existingUser) {
@@ -38,11 +41,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 setLoading(false);
                 return;
             }
+            // Success Login
+            setStep(2);
+            setTimeout(() => onComplete(name, false), 1500); // false = Existing User
         }
-        
-        // Success
-        setStep(2);
-        setTimeout(() => onComplete(name), 1500);
 
     } catch (err) {
         console.error(err);

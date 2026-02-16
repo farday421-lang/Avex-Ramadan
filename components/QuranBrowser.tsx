@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, Heart, Share2, BookOpen, Loader2, Bookmark, PlayCircle, ArrowRight, CheckCircle, Grip } from 'lucide-react';
+import { ArrowLeft, Search, BookOpen, Loader2, Bookmark, Play, Pause, Check, Volume2, CheckCircle } from 'lucide-react';
 import { Surah, QuranProgress } from '../types';
-import { toBengaliNumber } from '../services/utils';
+import { toBengaliNumber, englishToBengaliPhonetic } from '../services/utils';
 import { BENGALI_SURAH_NAMES } from '../constants';
 import { db } from '../services/database';
 
@@ -22,12 +22,7 @@ interface AyahData {
 
 interface TranslatedAyah {
   number: number;
-  text: string; // Bengali
-}
-
-interface TransliteratedAyah {
-  number: number;
-  text: string; // English Pronunciation
+  text: string;
 }
 
 const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber, initialAyahNumber }) => {
@@ -41,9 +36,13 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
   // Reader State
   const [ayahs, setAyahs] = useState<AyahData[]>([]);
   const [translation, setTranslation] = useState<TranslatedAyah[]>([]);
-  const [transliteration, setTransliteration] = useState<TransliteratedAyah[]>([]);
+  const [transliteration, setTransliteration] = useState<TranslatedAyah[]>([]);
   const [loadingSurah, setLoadingSurah] = useState(false);
   const [lastRead, setLastRead] = useState<QuranProgress | null>(null);
+
+  // Audio State
+  const [playingAyah, setPlayingAyah] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Para Tracking State
   const [completedParas, setCompletedParas] = useState<number[]>([]);
@@ -78,6 +77,13 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
         console.error("Failed to load surahs", err);
         setLoading(false);
       });
+
+    return () => {
+        // Cleanup audio on unmount
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
+    };
   }, []);
 
   useEffect(() => {
@@ -105,6 +111,12 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
   }, [loadingSurah, selectedSurah, initialAyahNumber]);
 
   const handleSelectSurah = async (surah: Surah, targetAyah?: number | null) => {
+    // Stop any playing audio
+    if (audioRef.current) {
+        audioRef.current.pause();
+        setPlayingAyah(null);
+    }
+
     setSelectedSurah(surah);
     setLoadingSurah(true);
     setAyahs([]);
@@ -112,13 +124,19 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
     setTransliteration([]);
 
     try {
+      // Fetches Arabic, Bengali Translation, and English Transliteration (Pronunciation)
       const res = await fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/editions/quran-uthmani,bn.bengali,en.transliteration`);
       const data = await res.json();
       
       if (data.data && data.data.length >= 3) {
-          setAyahs(data.data[0].ayahs);
-          setTranslation(data.data[1].ayahs);
-          setTransliteration(data.data[2].ayahs);
+          // Identify editions safely
+          const arabicData = data.data.find((e: any) => e.edition.identifier === 'quran-uthmani')?.ayahs || [];
+          const bengaliData = data.data.find((e: any) => e.edition.language === 'bn')?.ayahs || [];
+          const transData = data.data.find((e: any) => e.edition.type === 'transliteration')?.ayahs || [];
+
+          setAyahs(arabicData);
+          setTranslation(bengaliData);
+          setTransliteration(transData);
       }
       
       if (targetAyah) {
@@ -138,7 +156,6 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
   const handleBookmark = async (ayahNumber: number) => {
       if (!selectedSurah) return;
       
-      // Get Bengali Name
       const bengaliName = BENGALI_SURAH_NAMES[selectedSurah.number - 1];
 
       const progress: QuranProgress = {
@@ -149,6 +166,31 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
       };
       setLastRead(progress);
       await db.quran.saveLastRead(progress);
+  };
+
+  const playAyah = (globalAyahNumber: number) => {
+    if (playingAyah === globalAyahNumber) {
+        // Pause if already playing this one
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setPlayingAyah(null);
+        }
+    } else {
+        // Stop previous
+        if (audioRef.current) audioRef.current.pause();
+        
+        // Play new
+        const audio = new Audio(`https://cdn.islamic.network/quran/audio/128/ar.alafasy/${globalAyahNumber}.mp3`);
+        audioRef.current = audio;
+        audio.play();
+        setPlayingAyah(globalAyahNumber);
+        
+        audio.onended = () => setPlayingAyah(null);
+        audio.onerror = () => {
+            alert("Audio unavailable for this Ayah currently.");
+            setPlayingAyah(null);
+        };
+    }
   };
 
   const togglePara = async (paraNum: number) => {
@@ -224,7 +266,7 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
                             <p className="text-xs text-white/50">আয়াত: {toBengaliNumber(lastRead.ayahNumber)} থেকে চালিয়ে যান</p>
                         </div>
                         <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-black shadow-lg shadow-emerald-500/20 relative z-10 group-hover:scale-110 transition-transform">
-                            <PlayCircle size={20} />
+                            <Play size={20} fill="currentColor" />
                         </div>
                     </motion.div>
                 )}
@@ -340,7 +382,10 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
             >
                {/* Reader Header */}
                <div className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-white/10 px-4 py-4 flex items-center justify-between shadow-2xl">
-                   <button onClick={() => setSelectedSurah(null)} className="p-2 bg-white/5 rounded-full hover:bg-white/10">
+                   <button onClick={() => {
+                        if(audioRef.current) audioRef.current.pause();
+                        setSelectedSurah(null);
+                   }} className="p-2 bg-white/5 rounded-full hover:bg-white/10">
                        <ArrowLeft size={20} />
                    </button>
                    <div className="text-center">
@@ -369,49 +414,97 @@ const QuranBrowser: React.FC<QuranBrowserProps> = ({ onBack, initialSurahNumber,
                    ) : (
                        ayahs.map((ayah, index) => {
                            const isBookmarked = lastRead?.surahNumber === selectedSurah.number && lastRead.ayahNumber === ayah.numberInSurah;
-                           
+                           const isPlaying = playingAyah === ayah.number;
+                           // Use the helper to convert English transliteration to Bengali
+                           const bengaliPronunciation = transliteration[index] ? englishToBengaliPhonetic(transliteration[index].text) : '';
+
                            return (
                            <div 
                                 key={ayah.number} 
                                 ref={el => ayahRefs.current[ayah.numberInSurah] = el}
-                                className={`relative group transition-all duration-500 ${isBookmarked ? 'bg-emerald-500/5 -mx-4 px-4 py-4 rounded-xl border-y border-emerald-500/10' : ''}`}
+                                className={`relative group transition-all duration-500 glass-card rounded-2xl overflow-hidden p-0 mb-6 ${isBookmarked ? 'border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : ''}`}
                            >
-                               <div className="flex justify-between items-start mb-4">
+                               {/* Card Content Wrapper */}
+                               <div className="p-5">
+                                   {/* Top Row: Number */}
+                                   <div className="flex justify-between items-start mb-6">
+                                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-emerald-500/30 text-xs text-emerald-500 font-sans bg-emerald-500/5">
+                                           {toBengaliNumber(ayah.numberInSurah)}
+                                       </span>
+                                   </div>
+
+                                   {/* Arabic */}
+                                   <div className="mb-6 text-right pl-2">
+                                       <p className={`font-serif text-3xl leading-[2.2] drop-shadow-md transition-colors ${isPlaying ? 'text-avex-lime' : 'text-white'}`}>
+                                           {ayah.text} 
+                                       </p>
+                                   </div>
+
+                                   {/* Transliteration */}
+                                   <div className="mb-3">
+                                       <span className="text-[10px] uppercase text-white/30 tracking-widest block mb-1">উচ্চারণ</span>
+                                       <p className="text-avex-lime/90 text-sm font-medium leading-relaxed font-sans">
+                                           {bengaliPronunciation}
+                                       </p>
+                                   </div>
+
+                                   {/* Translation */}
+                                   <div>
+                                       <span className="text-[10px] uppercase text-white/30 tracking-widest block mb-1">অনুবাদ</span>
+                                       <p className="text-white/80 leading-relaxed font-sans text-sm">
+                                           {translation[index]?.text}
+                                       </p>
+                                   </div>
+                               </div>
+
+                               {/* Action Bar Footer */}
+                               <div className="bg-white/5 border-t border-white/5 p-3 flex gap-3">
+                                   <button 
+                                        onClick={() => playAyah(ayah.number)}
+                                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all ${
+                                            isPlaying 
+                                            ? 'bg-avex-lime text-black shadow-[0_0_15px_rgba(204,255,0,0.4)]' 
+                                            : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                                        }`}
+                                   >
+                                        {isPlaying ? (
+                                            <>
+                                                <div className="flex items-end gap-1 h-4">
+                                                    <div className="w-1 bg-black animate-[bounce_1s_infinite] h-2 rounded-full" />
+                                                    <div className="w-1 bg-black animate-[bounce_1s_infinite_0.1s] h-4 rounded-full" />
+                                                    <div className="w-1 bg-black animate-[bounce_1s_infinite_0.2s] h-3 rounded-full" />
+                                                </div>
+                                                <span>চলছে...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Play size={16} fill="currentColor" />
+                                                <span>শুনুন</span>
+                                            </>
+                                        )}
+                                   </button>
+                                   
                                    <button 
                                         onClick={() => handleBookmark(ayah.numberInSurah)}
-                                        className={`p-2 rounded-full transition-all ${isBookmarked ? 'bg-emerald-500 text-black' : 'bg-white/5 text-white/30 hover:text-emerald-400'}`}
+                                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-bold transition-all ${
+                                            isBookmarked 
+                                            ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]' 
+                                            : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                                        }`}
                                    >
-                                       <Bookmark size={16} fill={isBookmarked ? "currentColor" : "none"} />
+                                        {isBookmarked ? (
+                                            <>
+                                                <Check size={16} />
+                                                <span>সেভ করা হয়েছে</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Bookmark size={16} />
+                                                <span>সেভ করুন</span>
+                                            </>
+                                        )}
                                    </button>
-                                   <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-emerald-500/30 text-xs text-emerald-500 font-sans bg-emerald-500/5">
-                                       {toBengaliNumber(ayah.numberInSurah)}
-                                   </span>
                                </div>
-
-                               {/* Arabic */}
-                               <div className="mb-6 text-right pl-2">
-                                   <p className="font-serif text-3xl leading-[2.2] text-white drop-shadow-md">
-                                       {ayah.text} 
-                                   </p>
-                               </div>
-
-                               {/* Transliteration (Pronunciation) */}
-                               <div className="mb-3 pl-4 border-l-2 border-orange-400/30">
-                                   <span className="text-[10px] uppercase text-orange-400/50 tracking-widest block mb-1">উচ্চারণ</span>
-                                   <p className="text-orange-100/80 italic font-medium text-sm leading-relaxed">
-                                       {transliteration[index]?.text}
-                                   </p>
-                               </div>
-
-                               {/* Translation */}
-                               <div className="bg-white/5 rounded-xl p-4 border border-white/5 group-hover:border-emerald-500/20 transition-colors">
-                                   <span className="text-[10px] uppercase text-white/30 tracking-widest block mb-1">অনুবাদ</span>
-                                   <p className="text-white/90 leading-relaxed font-sans text-sm">
-                                       {translation[index]?.text}
-                                   </p>
-                               </div>
-
-                               <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent my-8" />
                            </div>
                        )})
                    )}

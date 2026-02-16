@@ -17,7 +17,7 @@ import AIAssistant from './components/AIAssistant';
 import SpiritualHub from './components/SpiritualHub';
 import WelcomePopup from './components/WelcomePopup';
 import TutorialOverlay from './components/TutorialOverlay';
-import InstallPrompt from './components/InstallPrompt'; // New Import
+import InstallPrompt from './components/InstallPrompt'; 
 
 // Utils & Services
 import { DUAS, MOCK_COORDS, RAMADAN_SCHEDULE } from './constants';
@@ -140,7 +140,7 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [prayerData]);
 
-  const handleOnboardingComplete = async (name: string) => {
+  const handleOnboardingComplete = async (name: string, isNewUser: boolean) => {
     setLoading(true);
     
     // Check user existence (Onboarding already validated this, but double check/fetch full profile)
@@ -167,7 +167,10 @@ const App: React.FC = () => {
     setUser(finalUser);
     setLoading(false);
     
-    setShowWelcome(true);
+    // ONLY Show welcome/tutorial for NEW users
+    if (isNewUser) {
+        setShowWelcome(true);
+    }
   };
 
   const handleCloseWelcome = () => {
