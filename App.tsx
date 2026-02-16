@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, ChevronRight, Zap, Moon, Locate, Star, Sun, Download, Smartphone } from 'lucide-react';
+import { Calendar, Clock, ChevronRight, Zap, Moon, Locate, Star, Sun } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,6 +17,7 @@ import AIAssistant from './components/AIAssistant';
 import SpiritualHub from './components/SpiritualHub';
 import WelcomePopup from './components/WelcomePopup';
 import TutorialOverlay from './components/TutorialOverlay';
+import InstallPrompt from './components/InstallPrompt'; // New Import
 
 // Utils & Services
 import { DUAS, MOCK_COORDS, RAMADAN_SCHEDULE } from './constants';
@@ -37,44 +38,9 @@ const App: React.FC = () => {
   const [todayRamadan, setTodayRamadan] = useState(RAMADAN_SCHEDULE[0]);
   const [isPreRamadan, setIsPreRamadan] = useState(false);
   
-  // PWA Install Prompt State
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [isIOS, setIsIOS] = useState(false);
-  const [showInstallHelp, setShowInstallHelp] = useState(false);
-
   // New State for Popups
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
-
-  // Capture Install Prompt & Detect iOS
-  useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-      console.log("Install prompt captured");
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-
-    // iOS Detection
-    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIOS(ios);
-
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (installPrompt) {
-        installPrompt.prompt();
-        const { outcome } = await installPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setInstallPrompt(null);
-        }
-    } else {
-        // Fallback or iOS instructions
-        setShowInstallHelp(true);
-        setTimeout(() => setShowInstallHelp(false), 5000);
-    }
-  };
 
   // Load User & Location
   useEffect(() => {
@@ -186,7 +152,7 @@ const App: React.FC = () => {
         finalUser = existingUser;
     } else {
         finalUser = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(), // Better unique ID
             name: name.trim(),
             hasOnboarded: true,
             streak: 0,
@@ -201,8 +167,6 @@ const App: React.FC = () => {
     setUser(finalUser);
     setLoading(false);
     
-    // Only show welcome popup if it's a new signup (or logic can be adjusted)
-    // Here we show it for both as a "Welcome back" or "Welcome"
     setShowWelcome(true);
   };
 
@@ -401,34 +365,8 @@ const App: React.FC = () => {
   return (
     <div className={`min-h-screen w-full bg-avex-black text-white relative overflow-x-hidden selection:bg-avex-lime/30 font-sans ${isRamadanNight ? 'theme-night' : ''}`}>
       
-      {/* Install App Button - Top Left */}
-      {(installPrompt || isIOS) && (
-        <div className="fixed top-6 left-6 z-[60]">
-            <button 
-              onClick={handleInstallClick}
-              className="p-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-white/70 hover:bg-avex-lime hover:text-black transition-all shadow-lg animate-pulse"
-              title="Install App"
-            >
-              <Download size={20} />
-            </button>
-            <AnimatePresence>
-                {showInstallHelp && (
-                    <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute top-14 left-0 w-64 bg-black/90 border border-white/20 p-4 rounded-xl text-xs text-white/80 backdrop-blur-xl"
-                    >
-                        {isIOS ? (
-                           <p>ইনস্টল করতে: ব্রাউজার মেনুতে <span className="inline-block p-1 bg-white/20 rounded"><Smartphone size={10} className="inline" /> Share</span> এ ক্লিক করুন এবং <b>"Add to Home Screen"</b> সিলেক্ট করুন।</p>
-                        ) : (
-                           <p>অ্যাপটি ইনস্টল করতে ব্রাউজারের মেনু থেকে <b>"Install App"</b> বা <b>"Add to Home Screen"</b> অপশনটি খুঁজুন।</p>
-                        )}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-      )}
+      {/* Install Prompt Component Handles Both iOS and Android */}
+      <InstallPrompt />
 
       {/* Dynamic Background Stars */}
       <div className="fixed inset-0 pointer-events-none z-0">
