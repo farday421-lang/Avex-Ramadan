@@ -47,6 +47,48 @@ export const getBengaliTimePeriod = (date: Date): string => {
     return 'রাত'; // 8 PM - 3 AM
 };
 
+// --- Notification Helpers ---
+
+export const requestNotificationPermission = async (): Promise<boolean> => {
+    if (!("Notification" in window)) {
+        alert("This browser does not support desktop notification");
+        return false;
+    }
+
+    if (Notification.permission === "granted") {
+        return true;
+    }
+
+    if (Notification.permission !== "denied") {
+        const permission = await Notification.requestPermission();
+        return permission === "granted";
+    }
+
+    return false;
+};
+
+export const sendNotification = (title: string, body: string) => {
+    if (Notification.permission === "granted") {
+        // Check if service worker is ready (for Mobile/PWA support)
+        if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, {
+                    body: body,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/2317/2317963.png',
+                    vibrate: [200, 100, 200],
+                    tag: 'avex-ramadan'
+                } as any);
+            });
+        } else {
+            // Fallback for desktop
+            new Notification(title, {
+                body: body,
+                icon: 'https://cdn-icons-png.flaticon.com/512/2317/2317963.png',
+            });
+        }
+    }
+};
+
 // --- New Phonetic Converter ---
 export const englishToBengaliPhonetic = (text: string): string => {
   if (!text) return '';

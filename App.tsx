@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, ChevronRight, Zap, Moon, Locate, Star, Sun } from 'lucide-react';
+import { Calendar, Clock, ChevronRight, Zap, Moon, Locate, Star, Sun, Bell, BellRing } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,7 +23,7 @@ import InstallPrompt from './components/InstallPrompt';
 import { DUAS, MOCK_COORDS, RAMADAN_SCHEDULE } from './constants';
 import { PrayerData, Coordinates, UserProfile } from './types';
 import { fetchPrayerTimes, getNextPrayer } from './services/prayerService';
-import { toBengaliNumber, translatePrayer, getBengaliMonth, getBengaliDay, getBengaliTimePeriod } from './services/utils';
+import { toBengaliNumber, translatePrayer, getBengaliMonth, getBengaliDay, getBengaliTimePeriod, requestNotificationPermission, sendNotification } from './services/utils';
 import { db } from './services/database'; 
 
 const App: React.FC = () => {
@@ -38,6 +38,10 @@ const App: React.FC = () => {
   const [todayRamadan, setTodayRamadan] = useState(RAMADAN_SCHEDULE[0]);
   const [isPreRamadan, setIsPreRamadan] = useState(false);
   
+  // Notification & Alert State
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [alertType, setAlertType] = useState<'normal' | 'alert' | 'iftar' | 'sehri'>('normal');
+  
   // New State for Popups
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -49,6 +53,11 @@ const App: React.FC = () => {
     const savedUser = localStorage.getItem('avex_user');
     if (savedUser) {
         setUser(JSON.parse(savedUser));
+    }
+    
+    // Check Notification Permission
+    if ("Notification" in window && Notification.permission === "granted") {
+        setNotifEnabled(true);
     }
 
     if (navigator.geolocation) {
@@ -79,6 +88,15 @@ const App: React.FC = () => {
       });
     }
   }, [coords]);
+
+  // Handle Notifications Permission
+  const handleEnableNotifications = async () => {
+      const granted = await requestNotificationPermission();
+      setNotifEnabled(granted);
+      if (granted) {
+          sendNotification("নোটিফিকেশন চালু হয়েছে", "ইফতার ও সেহরির সময় আপনাকে জানিয়ে দেওয়া হবে।");
+      }
+  };
 
   // Clock, Night Mode & Daily Schedule Check
   useEffect(() => {
@@ -124,13 +142,74 @@ const App: React.FC = () => {
             timeLeft: translatedTimeLeft
         });
         
-        const maghrib = prayerData.timings.Maghrib.split(':').map(Number);
-        const fajr = prayerData.timings.Fajr.split(':').map(Number);
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-        const maghribMins = (maghrib[0] + 12) * 60 + maghrib[1];
-        const fajrMins = fajr[0] * 60 + fajr[1];
+        // --- IFTAR COUNTDOWN LOGIC (2 HOURS BEFORE) ---
+        const maghribTime = prayerData.timings.Maghrib; // "18:05"
+        const [mH, mM] = maghribTime.split(':').map(Number);
+        const iftarDate = new Date(now);
+        iftarDate.setHours(mH, mM, 0, 0);
 
-        if (currentMins >= maghribMins || currentMins < fajrMins) {
+        const diffMs = iftarDate.getTime() - now.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        // Reset alert type defaults
+        let currentAlert: 'normal' | 'alert' | 'iftar' | 'sehri' = 'normal';
+
+        if (diffMins <= 120 && diffMins > 0) {
+            // Within 2 hours of Iftar
+            currentAlert = 'iftar';
+            
+            // Triggers for Notifications (Check only at the start of the minute)
+            if (now.getSeconds() === 0) {
+                 if (diffMins === 120) sendNotification("আর মাত্র ২ ঘণ্টা বাকি!", "ইফতারের প্রস্তুতি শুরু করুন।");
+                 if (diffMins === 60) sendNotification("আর ১ ঘণ্টা বাকি", "দোয়া ও ইস্তিগফার পড়ুন।");
+                 if (diffMins === 15) sendNotification("আর ১৫ মিনিট বাকি", "ইফতার সামনে নিয়ে দোয়ার জন্য বসুন।");
+                 if (diffMins === 1) sendNotification("প্রস্তুত হোন!", "ইফতারের সময় প্রায় হয়ে এসেছে।");
+            }
+        } else if (diffMins <= 0 && diffMins > -15) {
+            // Iftar Time!
+             currentAlert = 'alert';
+             if (now.getSeconds() === 0 && diffMins === 0) {
+                 sendNotification("ইফতারের সময় হয়েছে!", "বিসমিল্লাহ বলে ইফতার শুরু করুন।");
+             }
+        }
+
+        // --- SEHRI ALERT LOGIC ---
+        const fajrTime = prayerData.timings.Fajr;
+        const [fH, fM] = fajrTime.split(':').map(Number);
+        const fajrDate = new Date(now);
+        // If fajr is tomorrow relative to now (e.g. now is 11PM, Fajr is 5AM)
+        if (now.getHours() > fH) {
+            fajrDate.setDate(now.getDate() + 1);
+        }
+        fajrDate.setHours(fH, fM, 0, 0);
+        
+        const sehriDiffMs = fajrDate.getTime() - now.getTime();
+        const sehriDiffMins = Math.floor(sehriDiffMs / 60000);
+
+        if (sehriDiffMins <= 60 && sehriDiffMins > 0) {
+             // Sehri last hour
+             if (currentAlert === 'normal') currentAlert = 'sehri';
+             
+             if (now.getSeconds() === 0) {
+                if (sehriDiffMins === 60) sendNotification("সেহরির শেষ সময়: ১ ঘণ্টা বাকি", "উঠুন এবং সেহরি খেয়ে নিন।");
+                if (sehriDiffMins === 10) sendNotification("সেহরি শেষ হতে ১০ মিনিট বাকি", "দ্রুত খাওয়া শেষ করুন।");
+             }
+        }
+
+        setAlertType(currentAlert);
+
+        // Night Mode Logic
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const maghribMins = (mH + 12) * 60 + mM; // simple logic for PM conversion if needed, usually API returns 24h
+        // Note: API returns "18:05", so mH is 18.
+        
+        // Re-calc specific minutes from API strings
+        const [magH, magM] = prayerData.timings.Maghrib.split(':').map(Number);
+        const [fajH, fajM] = prayerData.timings.Fajr.split(':').map(Number);
+        const magTotal = magH * 60 + magM;
+        const fajTotal = fajH * 60 + fajM;
+        
+        if (currentMins >= magTotal || currentMins < fajTotal) {
             setIsRamadanNight(true);
         } else {
             setIsRamadanNight(false);
@@ -195,6 +274,23 @@ const App: React.FC = () => {
   const renderHome = () => (
     <div className="flex flex-col gap-10">
         <header className="relative flex flex-col items-center justify-center py-10">
+            {/* Notification Button */}
+            <div className="absolute top-0 right-0 z-30">
+                <button 
+                    onClick={handleEnableNotifications}
+                    className={`p-3 rounded-full backdrop-blur-md border transition-all duration-300 ${
+                        notifEnabled 
+                        ? 'bg-avex-lime/10 text-avex-lime border-avex-lime/30' 
+                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
+                    }`}
+                >
+                    {notifEnabled ? <BellRing size={20} /> : <Bell size={20} />}
+                    {!notifEnabled && (
+                        <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    )}
+                </button>
+            </div>
+
             <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full pointer-events-none blur-[80px] transition-colors duration-1000 ${isRamadanNight ? 'bg-purple-500/10' : 'bg-avex-lime/5'}`} />
 
             <div className="relative w-[300px] h-[300px] flex items-center justify-center">
@@ -379,7 +475,7 @@ const App: React.FC = () => {
       <DynamicIsland 
         nextPrayer={nextPrayerInfo.name} 
         timeLeft={nextPrayerInfo.timeLeft} 
-        type="normal" 
+        type={alertType} 
       />
 
       <main className="relative z-10 pt-32 px-6 max-w-lg mx-auto min-h-screen">

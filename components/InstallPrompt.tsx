@@ -11,9 +11,9 @@ const InstallPrompt: React.FC = () => {
 
   useEffect(() => {
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+    const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    if (isStandaloneMode) {
       setIsStandalone(true);
-      return;
     }
 
     // Detect iOS
@@ -28,12 +28,15 @@ const InstallPrompt: React.FC = () => {
     window.addEventListener('beforeinstallprompt', handler);
 
     // Show iOS hint after a delay if on iOS and not standalone
-    if (ios) {
-        const timer = setTimeout(() => setShowIOS(true), 3000);
-        return () => clearTimeout(timer);
+    let timer: any;
+    if (ios && !isStandaloneMode) {
+        timer = setTimeout(() => setShowIOS(true), 3000);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+        window.removeEventListener('beforeinstallprompt', handler);
+        if (timer) clearTimeout(timer);
+    };
   }, []);
 
   const handleAndroidInstall = async () => {
@@ -66,6 +69,7 @@ const InstallPrompt: React.FC = () => {
       <AnimatePresence>
         {showIOS && isIOS && (
           <motion.div 
+            key="ios-prompt"
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
