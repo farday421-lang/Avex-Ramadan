@@ -127,48 +127,57 @@ const App: React.FC = () => {
       }
       
       if (prayerData) {
+        // Default Logic
         const next = getNextPrayer(prayerData.timings);
-        const translatedName = translatePrayer(next.name);
-        const translatedTimeLeft = next.timeLeft
+        let nameToDisplay = translatePrayer(next.name);
+        let timeToDisplay = toBengaliNumber(next.time);
+        
+        // Default Format: "2h 30m" -> "২ঘ ৩০মি"
+        let timeLeftToDisplay = next.timeLeft
             .replace('h', 'ঘ')
             .replace('m', 'মি')
             .split(' ')
             .map(part => toBengaliNumber(part))
             .join(' ');
-
-        setNextPrayerInfo({
-            name: translatedName,
-            time: toBengaliNumber(next.time),
-            timeLeft: translatedTimeLeft
-        });
         
         // --- IFTAR COUNTDOWN LOGIC (2 HOURS BEFORE) ---
-        const maghribTime = prayerData.timings.Maghrib; // "18:05"
+        const maghribTime = prayerData.timings.Maghrib; 
         const [mH, mM] = maghribTime.split(':').map(Number);
         const iftarDate = new Date(now);
         iftarDate.setHours(mH, mM, 0, 0);
 
         const diffMs = iftarDate.getTime() - now.getTime();
         const diffMins = Math.floor(diffMs / 60000);
+        const diffSecs = Math.floor(diffMs / 1000);
         
-        // Reset alert type defaults
         let currentAlert: 'normal' | 'alert' | 'iftar' | 'sehri' = 'normal';
 
-        if (diffMins <= 120 && diffMins > 0) {
-            // Within 2 hours of Iftar
+        if (diffMs > 0 && diffMs <= 7200000) { // Within 2 hours
             currentAlert = 'iftar';
+            nameToDisplay = 'ইফতার';
             
-            // Triggers for Notifications (Check only at the start of the minute)
+            // Precise Countdown HH:MM:SS
+            const h = Math.floor(diffMs / 3600000);
+            const m = Math.floor((diffMs % 3600000) / 60000);
+            const s = Math.floor((diffMs % 60000) / 1000);
+            
+            const countdownStr = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            timeLeftToDisplay = toBengaliNumber(countdownStr); // "০:৫৯:৩০"
+
+            // Notifications
             if (now.getSeconds() === 0) {
                  if (diffMins === 120) sendNotification("আর মাত্র ২ ঘণ্টা বাকি!", "ইফতারের প্রস্তুতি শুরু করুন।");
                  if (diffMins === 60) sendNotification("আর ১ ঘণ্টা বাকি", "দোয়া ও ইস্তিগফার পড়ুন।");
+                 if (diffMins === 30) sendNotification("আর ৩০ মিনিট বাকি", "যিকির ও দোয়া বাড়ান।");
                  if (diffMins === 15) sendNotification("আর ১৫ মিনিট বাকি", "ইফতার সামনে নিয়ে দোয়ার জন্য বসুন।");
-                 if (diffMins === 1) sendNotification("প্রস্তুত হোন!", "ইফতারের সময় প্রায় হয়ে এসেছে।");
+                 if (diffMins === 5) sendNotification("আর ৫ মিনিট বাকি", "দ্রুত ইফতার সাজিয়ে নিন।");
             }
-        } else if (diffMins <= 0 && diffMins > -15) {
-            // Iftar Time!
+        } else if (diffMs <= 0 && diffMs > -900000) { // 15 mins after Iftar starts
              currentAlert = 'alert';
-             if (now.getSeconds() === 0 && diffMins === 0) {
+             nameToDisplay = 'ইফতারের সময়';
+             timeLeftToDisplay = 'চলছে';
+             
+             if (now.getSeconds() === 0 && diffSecs === 0) {
                  sendNotification("ইফতারের সময় হয়েছে!", "বিসমিল্লাহ বলে ইফতার শুরু করুন।");
              }
         }
@@ -177,8 +186,10 @@ const App: React.FC = () => {
         const fajrTime = prayerData.timings.Fajr;
         const [fH, fM] = fajrTime.split(':').map(Number);
         const fajrDate = new Date(now);
-        // If fajr is tomorrow relative to now (e.g. now is 11PM, Fajr is 5AM)
-        if (now.getHours() > fH) {
+        
+        // If current hour is greater than Fajr hour, Fajr is tomorrow
+        // OR if hours match but minutes passed, Fajr is tomorrow
+        if (now.getHours() > fH || (now.getHours() === fH && now.getMinutes() >= fM)) {
             fajrDate.setDate(now.getDate() + 1);
         }
         fajrDate.setHours(fH, fM, 0, 0);
@@ -186,30 +197,43 @@ const App: React.FC = () => {
         const sehriDiffMs = fajrDate.getTime() - now.getTime();
         const sehriDiffMins = Math.floor(sehriDiffMs / 60000);
 
-        if (sehriDiffMins <= 60 && sehriDiffMins > 0) {
-             // Sehri last hour
-             if (currentAlert === 'normal') currentAlert = 'sehri';
+        if (sehriDiffMs > 0 && sehriDiffMs <= 3600000) { // Within 1 hour
+             if (currentAlert === 'normal') { // Prioritize Iftar if conflict (rare)
+                 currentAlert = 'sehri';
+                 nameToDisplay = 'সেহরি শেষ';
+                 
+                 const h = Math.floor(sehriDiffMs / 3600000);
+                 const m = Math.floor((sehriDiffMs % 3600000) / 60000);
+                 const s = Math.floor((sehriDiffMs % 60000) / 1000);
+                 
+                 const countdownStr = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                 timeLeftToDisplay = toBengaliNumber(countdownStr);
+             }
              
              if (now.getSeconds() === 0) {
                 if (sehriDiffMins === 60) sendNotification("সেহরির শেষ সময়: ১ ঘণ্টা বাকি", "উঠুন এবং সেহরি খেয়ে নিন।");
-                if (sehriDiffMins === 10) sendNotification("সেহরি শেষ হতে ১০ মিনিট বাকি", "দ্রুত খাওয়া শেষ করুন।");
+                if (sehriDiffMins === 30) sendNotification("সেহরি শেষ হতে ৩০ মিনিট বাকি", "দ্রুত খাবার শেষ করুন।");
+                if (sehriDiffMins === 10) sendNotification("সেহরি শেষ হতে ১০ মিনিট বাকি", "পানি পান করে নিন।");
              }
         }
 
+        setNextPrayerInfo({
+            name: nameToDisplay,
+            time: timeToDisplay,
+            timeLeft: timeLeftToDisplay
+        });
+        
         setAlertType(currentAlert);
 
         // Night Mode Logic
+        // Calculate minutes to handle comparison easier
         const currentMins = now.getHours() * 60 + now.getMinutes();
-        const maghribMins = (mH + 12) * 60 + mM; // simple logic for PM conversion if needed, usually API returns 24h
-        // Note: API returns "18:05", so mH is 18.
+        const maghribMins = (mH + 12) * 60 + mM; // simple 12h fix, usually API returns 24h though
+        const maghribTotal = mH * 60 + mM; // 24h format from API usually
+        const fajrTotal = fH * 60 + fM;
         
-        // Re-calc specific minutes from API strings
-        const [magH, magM] = prayerData.timings.Maghrib.split(':').map(Number);
-        const [fajH, fajM] = prayerData.timings.Fajr.split(':').map(Number);
-        const magTotal = magH * 60 + magM;
-        const fajTotal = fajH * 60 + fajM;
-        
-        if (currentMins >= magTotal || currentMins < fajTotal) {
+        // If current time is after Maghrib OR before Fajr -> Night Mode
+        if (currentMins >= maghribTotal || currentMins < fajrTotal) {
             setIsRamadanNight(true);
         } else {
             setIsRamadanNight(false);
@@ -424,12 +448,16 @@ const App: React.FC = () => {
                     <Clock size={20} className="text-avex-lime" />
                 </div>
                 <div>
-                    <span className="text-[10px] uppercase tracking-widest text-white/50 block">পরবর্তী ওয়াক্ত</span>
+                    <span className="text-[10px] uppercase tracking-widest text-white/50 block">
+                        {alertType === 'iftar' ? 'ইফতারের বাকি' : alertType === 'sehri' ? 'সেহরির বাকি' : 'পরবর্তী ওয়াক্ত'}
+                    </span>
                     <h3 className="text-xl font-bold text-white">{nextPrayerInfo.name}</h3>
                 </div>
             </div>
             <div className="text-right">
-                <span className="text-2xl font-mono font-bold text-white tracking-tighter">{nextPrayerInfo.timeLeft}</span>
+                <span className={`text-2xl font-mono font-bold tracking-tighter ${alertType !== 'normal' ? 'text-avex-lime' : 'text-white'}`}>
+                    {nextPrayerInfo.timeLeft}
+                </span>
                 <span className="text-[10px] text-white/30 block">সময় বাকি</span>
             </div>
         </div>
