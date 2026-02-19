@@ -55,8 +55,8 @@ const App: React.FC = () => {
         setUser(JSON.parse(savedUser));
     }
     
-    // Check Notification Permission
-    if ("Notification" in window && Notification.permission === "granted") {
+    // Check Notification Permission (Safe Access)
+    if (typeof window !== 'undefined' && "Notification" in window && window.Notification.permission === "granted") {
         setNotifEnabled(true);
     }
 
@@ -94,7 +94,7 @@ const App: React.FC = () => {
       const granted = await requestNotificationPermission();
       setNotifEnabled(granted);
       if (granted) {
-          sendNotification("নোটিফিকেশন চালু হয়েছে", "ইফতার ও সেহরির সময় আপনাকে জানিয়ে দেওয়া হবে।");
+          sendNotification("নোটিফিকেশন চালু হয়েছে", "ইফতার ও সেহরির সময় প্রতি মিনিটে আপনাকে আপডেট দেওয়া হবে।");
       }
   };
 
@@ -152,7 +152,7 @@ const App: React.FC = () => {
         
         let currentAlert: 'normal' | 'alert' | 'iftar' | 'sehri' = 'normal';
 
-        if (diffMs > 0 && diffMs <= 7200000) { // Within 2 hours
+        if (diffMs > 0 && diffMs <= 7200000) { // Within 2 hours (7200000 ms)
             currentAlert = 'iftar';
             nameToDisplay = 'ইফতার';
             
@@ -164,13 +164,23 @@ const App: React.FC = () => {
             const countdownStr = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             timeLeftToDisplay = toBengaliNumber(countdownStr); // "০:৫৯:৩০"
 
-            // Notifications
+            // Notifications Logic: EVERY MINUTE
             if (now.getSeconds() === 0) {
-                 if (diffMins === 120) sendNotification("আর মাত্র ২ ঘণ্টা বাকি!", "ইফতারের প্রস্তুতি শুরু করুন।");
-                 if (diffMins === 60) sendNotification("আর ১ ঘণ্টা বাকি", "দোয়া ও ইস্তিগফার পড়ুন।");
-                 if (diffMins === 30) sendNotification("আর ৩০ মিনিট বাকি", "যিকির ও দোয়া বাড়ান।");
-                 if (diffMins === 15) sendNotification("আর ১৫ মিনিট বাকি", "ইফতার সামনে নিয়ে দোয়ার জন্য বসুন।");
-                 if (diffMins === 5) sendNotification("আর ৫ মিনিট বাকি", "দ্রুত ইফতার সাজিয়ে নিন।");
+                 if (diffMins === 60) {
+                     sendNotification("আর ১ ঘণ্টা বাকি", "দোয়া ও ইস্তিগফার পড়ুন।");
+                 } else if (diffMins === 30) {
+                     sendNotification("আর ৩০ মিনিট বাকি", "যিকির ও দোয়া বাড়ান।");
+                 } else if (diffMins === 15) {
+                     sendNotification("আর ১৫ মিনিট বাকি", "ইফতার সামনে নিয়ে দোয়ার জন্য বসুন।");
+                 } else if (diffMins === 5) {
+                     sendNotification("আর ৫ মিনিট বাকি", "দ্রুত ইফতার সাজিয়ে নিন।");
+                 } else {
+                     // Generic notification for every other minute
+                     sendNotification(
+                         "ইফতারের কাউন্টডাউন", 
+                         `ইফতার হতে আর মাত্র ${toBengaliNumber(diffMins)} মিনিট বাকি`
+                     );
+                 }
             }
         } else if (diffMs <= 0 && diffMs > -900000) { // 15 mins after Iftar starts
              currentAlert = 'alert';
@@ -212,8 +222,9 @@ const App: React.FC = () => {
              
              if (now.getSeconds() === 0) {
                 if (sehriDiffMins === 60) sendNotification("সেহরির শেষ সময়: ১ ঘণ্টা বাকি", "উঠুন এবং সেহরি খেয়ে নিন।");
-                if (sehriDiffMins === 30) sendNotification("সেহরি শেষ হতে ৩০ মিনিট বাকি", "দ্রুত খাবার শেষ করুন।");
-                if (sehriDiffMins === 10) sendNotification("সেহরি শেষ হতে ১০ মিনিট বাকি", "পানি পান করে নিন।");
+                else if (sehriDiffMins === 30) sendNotification("সেহরি শেষ হতে ৩০ মিনিট বাকি", "দ্রুত খাবার শেষ করুন।");
+                else if (sehriDiffMins === 10) sendNotification("সেহরি শেষ হতে ১০ মিনিট বাকি", "পানি পান করে নিন।");
+                else if (sehriDiffMins === 5) sendNotification("সেহরি শেষ হতে ৫ মিনিট বাকি", "নিয়ত করে নিন।");
              }
         }
 

@@ -50,17 +50,19 @@ export const getBengaliTimePeriod = (date: Date): string => {
 // --- Notification Helpers ---
 
 export const requestNotificationPermission = async (): Promise<boolean> => {
-    if (!("Notification" in window)) {
-        alert("This browser does not support desktop notification");
+    // Safety check for window presence (SSR or non-browser env)
+    if (typeof window === 'undefined' || !("Notification" in window)) {
+        console.warn("This browser does not support desktop notification");
         return false;
     }
 
-    if (Notification.permission === "granted") {
+    // Access via window object to prevent ReferenceError
+    if (window.Notification.permission === "granted") {
         return true;
     }
 
-    if (Notification.permission !== "denied") {
-        const permission = await Notification.requestPermission();
+    if (window.Notification.permission !== "denied") {
+        const permission = await window.Notification.requestPermission();
         return permission === "granted";
     }
 
@@ -68,7 +70,12 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 };
 
 export const sendNotification = (title: string, body: string) => {
-    if (Notification.permission === "granted") {
+    // Guard clause: check if Notification API is available in the window
+    if (typeof window === 'undefined' || !("Notification" in window)) {
+        return;
+    }
+
+    if (window.Notification.permission === "granted") {
         // Check if service worker is ready (for Mobile/PWA support)
         if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
             navigator.serviceWorker.ready.then(registration => {
@@ -80,8 +87,8 @@ export const sendNotification = (title: string, body: string) => {
                 } as any);
             });
         } else {
-            // Fallback for desktop
-            new Notification(title, {
+            // Fallback for desktop, strictly using window.Notification
+            new window.Notification(title, {
                 body: body,
                 icon: 'https://cdn-icons-png.flaticon.com/512/2317/2317963.png',
             });
